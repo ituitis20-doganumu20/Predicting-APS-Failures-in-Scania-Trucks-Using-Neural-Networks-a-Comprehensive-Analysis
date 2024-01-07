@@ -1,0 +1,88 @@
+import numpy as np
+
+# Define the new gridworld environment
+gridworld2 = np.array([
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 'w', 'g'],
+    ['w', 'w', 0, 'w', 'w'],
+    [0, 0, 0, 0, 0],
+    ['s', 0, 0, 0, 'j']
+])
+
+# Define actions (Up, Down, Left, Right, Up2, Down2, Left2, Right2)
+actions2 = ['U', 'D', 'L', 'R', 'U2', 'D2', 'L2', 'R2']
+
+# Initialize Q-table with zeros
+q_table2 = np.zeros((5, 5, 8))
+
+# Define a function to get the next state based on the current state and action
+def get_next_state2(state, action):
+    i, j = state
+    if action == 'U':
+        i = max(i - 1, 0)
+    elif action == 'D':
+        i = min(i + 1, 4)
+    elif action == 'L':
+        j = max(j - 1, 0)
+    elif action == 'R':
+        j = min(j + 1, 4)
+    elif action == 'U2':
+        i = max(i - 2, 0)
+    elif action == 'D2':
+        i = min(i + 2, 4)
+    elif action == 'L2':
+        j = max(j - 2, 0)
+    elif action == 'R2':
+        j = min(j + 2, 4)
+    return (i, j)
+
+# Define the reward function for the new environment with jetpack pickup logic
+def get_reward2(state):
+    i, j = state
+    if gridworld2[i, j] == 'w':
+        return -5
+    elif gridworld2[i, j] == 'g':
+        return 10
+    elif gridworld2[i, j] == 'j':
+        # Set the the grid as empty after pickup
+        gridworld2[i, j] = 0
+        return 5
+    elif gridworld2[i, j] == 0:
+        return -1
+    else:
+        return 0
+
+# Epsilon-greedy Q-learning algorithm for the new environment with jetpack pickup logic
+def greedy_q_learning_new_env(epsilon=0.1, alpha=0.1, gamma=0.9, num_episodes=1000):
+    for _ in range(num_episodes):
+        state = (4, 0)  # Initial state 's'
+        has_jetpack = False  # Variable to track if the robot has the jetpack
+        while gridworld2[state[0], state[1]] != 'g':
+            if np.random.rand() < epsilon:
+                if not has_jetpack:
+                    action = np.random.choice(actions2[:4])  # Basic actions without jetpack
+                else:
+                    action = np.random.choice(actions2)  # All actions including jetpack
+            else:
+                if not has_jetpack:
+                    action_index = np.argmax(q_table2[state[0], state[1], :4])
+                else:
+                    action_index = np.argmax(q_table2[state[0], state[1], :]) 
+                action = actions2[action_index]
+                
+
+            next_state = get_next_state2(state, action)
+            reward = get_reward2(next_state)
+            if reward==5:
+                has_jetpack=True
+            #act=actions2.index(action)
+            old_q_value = q_table2[state[0], state[1], actions2.index(action)]
+            new_q_value = (1 - alpha) * old_q_value + alpha * (reward + gamma * np.max(q_table2[next_state[0], next_state[1], :]))
+            q_table2[state[0], state[1], actions2.index(action)] = new_q_value
+            state = next_state
+
+
+# Perform epsilon-greedy Q-learning for the new environment
+greedy_q_learning_new_env()
+
+print(q_table2)
